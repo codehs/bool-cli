@@ -1,0 +1,13 @@
+{
+  "name": "bool-cli",
+  "version": "0.1.0",
+  "description": "CLI tool for managing websites on bool.com",
+  "type": "module",
+  "bin": {
+    "bool": "./bin/bool.js"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0"
+  }
+}
