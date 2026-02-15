@@ -21,16 +21,19 @@ function openUrl(url) {
 export function register(program) {
   program
     .command('list')
-    .description('List all Bools')
+    .description('List Bools')
+    .argument('[count]', 'Number of Bools to show', '5')
     .option('--json', 'Output as JSON')
-    .action(async (opts) => {
+    .action(async (count, opts) => {
       try {
+        const limit = parseInt(count, 10);
         const data = await get('/bools/');
-        if (opts.json) return printJson(data);
-        if (!data.length) return info('No Bools found.');
+        const items = data.slice(0, limit);
+        if (opts.json) return printJson(items);
+        if (!items.length) return info('No Bools found.');
         table(
           ['Name', 'Slug', 'Visibility', 'Updated'],
-          data.map((b) => [b.name, b.slug, b.visibility, b.updated_at]),
+          items.map((b) => [b.name, b.slug, b.visibility, b.updated_at]),
         );
       } catch (err) {
         error(err.message);
