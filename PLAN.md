@@ -2,12 +2,12 @@ bool-cli — CLI Spec & Agent Prompt
 
 Goal
 
-Build a CLI tool (bool-cli) that wraps the Bool.dev public REST API, letting developers manage Bools (projects), deploy files, and inspect versions from the terminal.
+Build a CLI tool (bool-cli) that wraps the bool.com public REST API, letting developers manage Bools (projects), deploy files, and inspect versions from the terminal.
 
 API Reference
 
-Base URL: https://www.bool.dev/api/
-Auth: Bearer token via Authorization: Bearer bool_<token> header. Keys are created in the Bool.dev web UI.
+Base URL: https://bool.com/api/
+Auth: Bearer token via Authorization: Bearer bool_<token> header. Keys are created in the bool.com web UI.
 
 Endpoints (all require auth unless noted)
 
