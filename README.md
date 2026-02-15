@@ -33,12 +33,14 @@ Your API key is saved to `~/.config/bool-cli/config.json`. You can also set the 
 
 | Command | Description |
 |---|---|
-| `bool list` | List all Bools |
-| `bool create <name>` | Create a new Bool |
-| `bool info <slug>` | Show Bool details + latest version |
-| `bool update <slug> [--name] [--description] [--visibility]` | Update a Bool |
-| `bool delete <slug>` | Soft-delete (with confirmation) |
-| `bool open <slug>` | Open editor URL in browser |
+| `bool bools list` | List all Bools |
+| `bool bools create <name>` | Create a new Bool |
+| `bool bools info <slug>` | Show Bool details + latest version |
+| `bool bools update <slug> [--name] [--description] [--visibility]` | Update a Bool |
+| `bool bools delete <slug>` | Soft-delete (with confirmation) |
+| `bool bools open <slug>` | Open editor URL in browser |
+| `bool bools visibility <slug>` | Show Bool visibility |
+| `bool bools visibility <slug> --set <value>` | Change Bool visibility |
 
 ### Versions & Deployment
 
@@ -85,7 +87,7 @@ bool-cli/
   src/
     commands/
       auth.js            # auth login, auth status
-      bools.js           # list, create, info, update, delete, open
+      bools.js           # bools list, create, info, update, delete, open, visibility
       versions.js        # versions, deploy, pull
     utils/
       config.js          # Config file + env var loading

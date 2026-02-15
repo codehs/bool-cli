@@ -19,7 +19,11 @@ function openUrl(url) {
 }
 
 export function register(program) {
-  program
+  const boolsCmd = program
+    .command('bools')
+    .description('Manage Bools');
+
+  boolsCmd
     .command('list')
     .description('List Bools')
     .argument('[count]', 'Number of Bools to show', '5')
@@ -41,7 +45,7 @@ export function register(program) {
       }
     });
 
-  program
+  boolsCmd
     .command('create')
     .description('Create a new Bool')
     .argument('<name>', 'Bool name')
@@ -58,7 +62,7 @@ export function register(program) {
       }
     });
 
-  program
+  boolsCmd
     .command('info')
     .description('Show Bool details and latest version')
     .argument('<slug>', 'Bool slug')
@@ -88,7 +92,7 @@ export function register(program) {
       }
     });
 
-  program
+  boolsCmd
     .command('update')
     .description('Update a Bool')
     .argument('<slug>', 'Bool slug')
@@ -117,7 +121,7 @@ export function register(program) {
       }
     });
 
-  program
+  boolsCmd
     .command('delete')
     .description('Delete a Bool')
     .argument('<slug>', 'Bool slug')
@@ -140,7 +144,7 @@ export function register(program) {
       }
     });
 
-  program
+  boolsCmd
     .command('open')
     .description('Open Bool in browser')
     .argument('<slug>', 'Bool slug')
@@ -152,6 +156,47 @@ export function register(program) {
         openUrl(url);
       } catch (err) {
         error(err.message);
+        process.exit(1);
+      }
+    });
+
+  boolsCmd
+    .command('visibility')
+    .description('View or change Bool visibility')
+    .argument('<slug>', 'Bool slug')
+    .option('--set <value>', 'Set visibility to: private|team|unlisted|public')
+    .option('--json', 'Output as JSON')
+    .action(async (slug, opts) => {
+      const validVisibilities = ['private', 'team', 'unlisted', 'public'];
+
+      try {
+        // If --set is provided, validate it first
+        if (opts.set) {
+          if (!validVisibilities.includes(opts.set)) {
+            error(
+              `Invalid visibility "${opts.set}". Must be one of: ${validVisibilities.join(', ')}`,
+            );
+            process.exit(1);
+          }
+
+          // Make the PATCH request
+          const data = await patch(`/bools/${slug}/`, { visibility: opts.set });
+          if (opts.json) return printJson(data);
+          success(`Updated ${slug} visibility to ${opts.set}`);
+        } else {
+          // Just get current visibility
+          const data = await get(`/bools/${slug}/`);
+          if (opts.json) return printJson({ slug: data.slug, visibility: data.visibility });
+          info(`Site: ${data.slug}`);
+          info(`Visibility: ${data.visibility}`);
+        }
+      } catch (err) {
+        // Handle 404 specifically
+        if (err.message.includes('404')) {
+          error(`Site "${slug}" not found`);
+        } else {
+          error(err.message);
+        }
         process.exit(1);
       }
     });

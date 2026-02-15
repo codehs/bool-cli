@@ -34,12 +34,14 @@ bool auth status         # Check auth + API health (non-interactive)
 ### Managing Bools
 
 ```bash
-bool list [count]        # List Bools (default: 5)
-bool create <name>       # Create a new Bool
-bool info <slug>         # Show Bool details + latest version info
-bool update <slug> --name "New Name" --description "desc" --visibility public
-bool delete <slug> -y    # Delete a Bool (always use -y to skip prompt)
-bool open <slug>         # Open Bool in browser
+bool bools list [count]        # List Bools (default: 5)
+bool bools create <name>       # Create a new Bool
+bool bools info <slug>         # Show Bool details + latest version info
+bool bools update <slug> --name "New Name" --description "desc" --visibility public
+bool bools delete <slug> -y    # Delete a Bool (always use -y to skip prompt)
+bool bools open <slug>         # Open Bool in browser
+bool bools visibility <slug>         # Show current visibility
+bool bools visibility <slug> --set private    # Change visibility
 ```
 
 Visibility options: `private`, `team`, `unlisted`, `public`
@@ -67,7 +69,7 @@ bool versions my-project --json
 ### Create and deploy a new Bool
 
 ```bash
-bool create "My Project"
+bool bools create "My Project"
 # note the slug from the output, e.g. "my-project"
 bool deploy my-project ./src -m "Initial deploy"
 ```
@@ -83,9 +85,17 @@ bool deploy my-project ./my-project -m "Updated files"
 ### Check what's deployed
 
 ```bash
-bool info my-project            # See latest version summary
+bool bools info my-project            # See latest version summary
 bool versions my-project        # See full version history
 bool pull my-project ./tmp      # Download current files to inspect
+```
+
+### Manage visibility
+
+```bash
+bool bools visibility my-project            # Show current visibility
+bool bools visibility my-project --set private   # Make it private
+bool bools visibility my-project --set public    # Make it public
 ```
 
 ### Deploy a specific subdirectory
