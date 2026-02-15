@@ -1,30 +1,43 @@
-// Stub API client — replace with real fetch calls when API is ready
+import { getApiKey, getApiUrl } from './config.js';
 
-import { getToken, getApiUrl } from './config.js';
-
-function headers() {
+function headers(auth = true) {
   const h = { 'Content-Type': 'application/json' };
-  const token = getToken();
-  if (token) h['Authorization'] = `Bearer ${token}`;
+  if (auth) {
+    const key = getApiKey();
+    if (key) h['Authorization'] = `Bearer ${key}`;
+  }
   return h;
 }
 
-export async function get(path) {
-  // TODO: return fetch(`${getApiUrl()}${path}`, { headers: headers() });
-  return null;
+async function request(method, path, body, auth = true) {
+  const url = `${getApiUrl()}${path}`;
+  const opts = { method, headers: headers(auth) };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  const res = await fetch(url, opts);
+  if (res.status === 204) return null;
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || `API error: ${res.status}`);
+  }
+  return data;
 }
 
-export async function post(path, body) {
-  // TODO: return fetch(`${getApiUrl()}${path}`, { method: 'POST', headers: headers(), body: JSON.stringify(body) });
-  return null;
+export function get(path) {
+  return request('GET', path);
 }
 
-export async function put(path, body) {
-  // TODO: return fetch(`${getApiUrl()}${path}`, { method: 'PUT', headers: headers(), body: JSON.stringify(body) });
-  return null;
+export function post(path, body) {
+  return request('POST', path, body);
 }
 
-export async function del(path) {
-  // TODO: return fetch(`${getApiUrl()}${path}`, { method: 'DELETE', headers: headers() });
-  return null;
+export function patch(path, body) {
+  return request('PATCH', path, body);
+}
+
+export function del(path) {
+  return request('DELETE', path);
+}
+
+export function healthCheck() {
+  return request('GET', '/health/', undefined, false);
 }

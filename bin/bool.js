@@ -1,31 +1,23 @@
 #!/usr/bin/env node
 
+import { createRequire } from 'node:module';
 import { Command } from 'commander';
 import { register as auth } from '../src/commands/auth.js';
-import { register as sites } from '../src/commands/sites.js';
-import { register as deploy } from '../src/commands/deploy.js';
-import { register as domains } from '../src/commands/domains.js';
-import { register as settings } from '../src/commands/settings.js';
-import { register as teams } from '../src/commands/teams.js';
-import { register as billing } from '../src/commands/billing.js';
-import { register as logs } from '../src/commands/logs.js';
-import { register as analytics } from '../src/commands/analytics.js';
+import { register as bools } from '../src/commands/bools.js';
+import { register as versions } from '../src/commands/versions.js';
+
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json');
 
 const program = new Command();
 
 program
   .name('bool')
-  .description('CLI for managing websites on bool.com')
-  .version('0.1.0');
+  .description('CLI for Bool.dev')
+  .version(version);
 
 auth(program);
-sites(program);
-deploy(program);
-domains(program);
-settings(program);
-teams(program);
-billing(program);
-logs(program);
-analytics(program);
+bools(program);
+versions(program);
 
 program.parse();
