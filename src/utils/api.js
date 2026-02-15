@@ -4,7 +4,10 @@ function headers(auth = true) {
   const h = { 'Content-Type': 'application/json' };
   if (auth) {
     const key = getApiKey();
-    if (key) h['Authorization'] = `Bearer ${key}`;
+    if (!key) {
+      throw new Error('No API key configured. Run: bool auth login');
+    }
+    h['Authorization'] = `Bearer ${key}`;
   }
   return h;
 }
