@@ -22,7 +22,7 @@ export function register(program) {
     .command('login')
     .description('Save API key')
     .action(async () => {
-      const key = await prompt('Enter your Bool.dev API key: ');
+      const key = await prompt('Enter your bool.com API key: ');
       if (!key) {
         error('No API key provided.');
         process.exit(1);

@@ -13,7 +13,7 @@ const program = new Command();
 
 program
   .name('bool')
-  .description('CLI for Bool.dev')
+  .description('CLI for bool.com')
   .version(version);
 
 auth(program);

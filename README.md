@@ -1,6 +1,6 @@
 # bool-cli
 
-CLI tool for managing projects on [Bool.dev](https://bool.dev).
+CLI tool for managing projects on [bool.com](https://bool.com).
 
 ## Installation
 
@@ -14,7 +14,7 @@ This installs the `bool` command globally.
 ## Setup
 
 ```bash
-bool auth login      # Paste your API key from the Bool.dev web UI
+bool auth login      # Paste your API key from the bool.com web UI
 bool auth status     # Verify connection
 ```
 

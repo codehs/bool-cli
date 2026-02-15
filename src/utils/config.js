@@ -29,5 +29,5 @@ export function setApiKey(key) {
 }
 
 export function getApiUrl() {
-  return process.env.BOOL_API_URL || 'https://www.bool.dev/api';
+  return process.env.BOOL_API_URL || 'https://www.bool.com/api';
 }
