@@ -1,6 +1,6 @@
 # bool-cli
 
-CLI tool for managing websites on [bool.com](https://bool.com).
+CLI tool for managing projects on [Bool.dev](https://bool.dev).
 
 ## Installation
 
@@ -11,13 +11,14 @@ npm link
 
 This installs the `bool` command globally.
 
-## Usage
+## Setup
 
 ```bash
-bool <command> [options]
+bool auth login      # Paste your API key from the Bool.dev web UI
+bool auth status     # Verify connection
 ```
 
-Run `bool --help` to see all available commands, or `bool <command> --help` for details on a specific command.
+Your API key is saved to `~/.config/bool-cli/config.json`. You can also set the `BOOL_API_KEY` environment variable.
 
 ## Commands
 
@@ -25,98 +26,69 @@ Run `bool --help` to see all available commands, or `bool <command> --help` for 
 
 | Command | Description |
 |---|---|
-| `bool login` | Log in to bool.com |
-| `bool logout` | Log out |
-| `bool signup` | Create a new account |
-| `bool whoami` | Show current logged-in user |
+| `bool auth login` | Save API key |
+| `bool auth status` | Check auth + API health |
 
-### Sites
+### Bools
 
 | Command | Description |
 |---|---|
-| `bool sites create --name <name>` | Create a new site |
-| `bool sites list` | List all sites |
-| `bool sites view <site-id>` | View site details |
-| `bool sites update <site-id> --name <name>` | Update a site |
-| `bool sites delete <site-id>` | Delete a site |
+| `bool list` | List all Bools |
+| `bool create <name>` | Create a new Bool |
+| `bool info <slug>` | Show Bool details + latest version |
+| `bool update <slug> [--name] [--description] [--visibility]` | Update a Bool |
+| `bool delete <slug>` | Soft-delete (with confirmation) |
+| `bool open <slug>` | Open editor URL in browser |
 
-### Deployments
-
-| Command | Description |
-|---|---|
-| `bool deploy [dir] --site <site-id>` | Deploy a directory to a site |
-| `bool preview [dir] --site <site-id>` | Create a preview deployment |
-| `bool rollback <site-id> --to <deployment-id>` | Rollback to a previous deployment |
-
-### Domains
+### Versions & Deployment
 
 | Command | Description |
 |---|---|
-| `bool domains add <site-id> <domain>` | Add a custom domain |
-| `bool domains remove <site-id> <domain>` | Remove a custom domain |
-| `bool domains list <site-id>` | List domains for a site |
+| `bool versions <slug>` | List version history |
+| `bool deploy <slug> [dir]` | Deploy local files as a new version |
+| `bool pull <slug> [dir]` | Download files to a local directory |
 
-### Settings
+#### Deploy options
 
-| Command | Description |
-|---|---|
-| `bool settings view <site-id>` | View site settings |
-| `bool settings update <site-id> --key <k> --value <v>` | Update a setting |
+```bash
+bool deploy my-project ./src --message "Added dark mode" --exclude "*.test.js"
+```
 
-### Teams
+- `--message` / `-m` — Commit message
+- `--exclude` — Exclude pattern (repeatable, default excludes: `.git`, `node_modules`, `__pycache__`)
+- Binary files are automatically skipped
+- Respects `.boolignore` files (gitignore syntax)
 
-| Command | Description |
-|---|---|
-| `bool teams list` | List teams |
-| `bool teams switch <team-id>` | Switch active team |
-| `bool teams invite <email> --role <role>` | Invite a member (default role: member) |
-| `bool teams remove <email>` | Remove a member |
+#### Pull options
 
-### Billing
+```bash
+bool pull my-project ./local-copy --version 3
+```
 
-| Command | Description |
-|---|---|
-| `bool billing plan` | View current billing plan |
-| `bool billing usage` | View current usage |
+- `--version` — Specific version number (default: latest)
 
-### Logs
+### JSON output
 
-| Command | Description |
-|---|---|
-| `bool logs view <site-id>` | View recent logs |
-| `bool logs tail <site-id>` | Tail logs in real time |
+All commands support `--json` for machine-readable output:
 
-### Analytics
-
-| Command | Description |
-|---|---|
-| `bool analytics <site-id> --period <period>` | View site analytics (default: 7d) |
+```bash
+bool list --json
+bool info my-project --json
+```
 
 ## Project Structure
 
 ```
-boolcli/
+bool-cli/
   bin/
     bool.js              # Entry point
   src/
     commands/
-      auth.js            # login, logout, signup, whoami
-      sites.js           # create, list, view, update, delete
-      deploy.js          # deploy, preview, rollback
-      domains.js         # add, remove, list
-      settings.js        # view, update
-      teams.js           # invite, remove, list, switch
-      billing.js         # plan, usage
-      logs.js            # view, tail
-      analytics.js       # view
+      auth.js            # auth login, auth status
+      bools.js           # list, create, info, update, delete, open
+      versions.js        # versions, deploy, pull
     utils/
-      config.js          # Config helpers (getToken, setToken, getApiUrl)
-      api.js             # API client (get, post, put, delete)
-      output.js          # Output formatting helpers
+      config.js          # Config file + env var loading
+      api.js             # API client (fetch-based)
+      output.js          # Output formatting (tables, colors, JSON)
 ```
-
-## Development
-
-All command handlers are currently stubbed and will print a `[TODO]` message. Replace the stubs with real API calls as the bool.com API becomes available.
-
-The utility modules in `src/utils/` provide consistent patterns for configuration, API requests, and output formatting that command handlers can build on.
