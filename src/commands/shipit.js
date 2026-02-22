@@ -59,15 +59,19 @@ export function register(program) {
           process.exit(1);
         }
 
+        const slug = isUpdate ? opts.slug : data.slug;
+        const liveUrl = `https://${slug}.bool01.com`;
+
         if (isUpdate) {
-          const editUrl = `${baseUrl}/editor/${opts.slug}/`;
-          process.stdout.write(editUrl + '\n');
+          process.stdout.write(liveUrl + '\n');
           process.stderr.write(chalk.green('✔') + ` Updated v${data.version_number} (${data.file_count} files)\n`);
-          process.stderr.write(`  ${editUrl}\n`);
+          process.stderr.write(`  ${liveUrl}\n`);
+          process.stderr.write(`  slug: ${slug}\n`);
         } else {
-          process.stdout.write(data.url + '\n');
+          process.stdout.write(liveUrl + '\n');
           process.stderr.write(chalk.green('✔') + ` Shipped "${data.name}" (${files.length} files)\n`);
-          process.stderr.write(`  ${data.url}\n`);
+          process.stderr.write(`  ${liveUrl}\n`);
+          process.stderr.write(`  slug: ${slug}\n`);
         }
       } catch (err) {
         process.stderr.write(chalk.red('✖') + ` ${err.message}\n`);
