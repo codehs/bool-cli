@@ -31,3 +31,24 @@ export function setApiKey(key) {
 export function getApiUrl() {
   return process.env.BOOL_API_URL || 'https://bool.com/api';
 }
+
+// Project-level config: <dir>/.bool/config
+// Stores { slug, name } for the bool associated with a directory.
+
+export function readProjectConfig(dir) {
+  try {
+    const configPath = path.join(dir, '.bool', 'config');
+    return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+  } catch {
+    return {};
+  }
+}
+
+export function writeProjectConfig(dir, data) {
+  const configDir = path.join(dir, '.bool');
+  fs.mkdirSync(configDir, { recursive: true });
+  const configPath = path.join(configDir, 'config');
+  const existing = readProjectConfig(dir);
+  const merged = { ...existing, ...data };
+  fs.writeFileSync(configPath, JSON.stringify(merged, null, 2) + '\n');
+}

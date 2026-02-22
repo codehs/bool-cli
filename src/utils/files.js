@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import ignore from 'ignore';
 
-const DEFAULT_IGNORE = ['.git', 'node_modules', '__pycache__', '.DS_Store'];
+const DEFAULT_IGNORE = ['.git', 'node_modules', '__pycache__', '.DS_Store', '.bool'];
 
 const BINARY_EXTENSIONS = new Set([
   '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.webp', '.svg',
