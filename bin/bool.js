@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { Command } from 'commander';
 import { register as auth } from '../src/commands/auth.js';
 import { register as bools } from '../src/commands/bools.js';
+import { register as shipit } from '../src/commands/shipit.js';
 import { register as versions } from '../src/commands/versions.js';
 
 const require = createRequire(import.meta.url);
@@ -18,6 +19,7 @@ program
 
 auth(program);
 bools(program);
+shipit(program);
 versions(program);
 
 program.parse();
