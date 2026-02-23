@@ -29,26 +29,47 @@ Your API key is saved to `~/.config/bool-cli/config.json`. You can also set the 
 | `bool auth login` | Save API key |
 | `bool auth status` | Check auth + API health |
 
+### Ship It
+
+The fastest way to get code live — no account or API key required:
+
+```bash
+bool shipit [directory]
+```
+
+Creates an anonymous Bool and uploads files in one step. On subsequent runs from the same directory, it updates the existing Bool automatically (tracked via `.bool/config`).
+
+#### Options
+
+| Option | Description |
+|---|---|
+| `--slug <slug>` | Update an existing anonymous Bool instead of creating a new one |
+| `--name <name>` | Bool name (defaults to config, then directory name) |
+| `-m, --message <msg>` | Commit message (used when updating) |
+| `--base-url <url>` | Base URL (or set `BOOL_BASE_URL`) |
+
 ### Bools
 
 | Command | Description |
 |---|---|
-| `bool bools list` | List all Bools |
+| `bool bools list [count]` | List Bools (default: 5) |
 | `bool bools create <name>` | Create a new Bool |
-| `bool bools info <slug>` | Show Bool details + latest version |
-| `bool bools update <slug> [--name] [--description] [--visibility]` | Update a Bool |
-| `bool bools delete <slug>` | Soft-delete (with confirmation) |
-| `bool bools open <slug>` | Open editor URL in browser |
-| `bool bools visibility <slug>` | Show Bool visibility |
-| `bool bools visibility <slug> --set <value>` | Change Bool visibility |
+| `bool bools info [slug]` | Show Bool details + latest version |
+| `bool bools update [slug] [--name] [--description] [--visibility]` | Update a Bool |
+| `bool bools delete [slug] [-y]` | Delete (with confirmation, skip with `-y`) |
+| `bool bools open [slug]` | Open editor URL in browser |
+| `bool bools visibility [slug]` | Show Bool visibility |
+| `bool bools visibility [slug] --set <value>` | Change visibility (`private`, `team`, `unlisted`, `public`) |
+
+> **Slug resolution:** When `[slug]` is omitted, commands read it from the `.bool/config` file in the current directory. This file is created automatically by `shipit`, `deploy`, `pull`, and `info`.
 
 ### Versions & Deployment
 
 | Command | Description |
 |---|---|
-| `bool versions <slug>` | List version history |
-| `bool deploy <slug> [dir]` | Deploy local files as a new version |
-| `bool pull <slug> [dir]` | Download files to a local directory |
+| `bool versions [slug]` | List version history |
+| `bool deploy [slug] [dir]` | Deploy local files as a new version |
+| `bool pull [slug] [dir]` | Download files to a local directory |
 
 #### Deploy options
 
@@ -57,9 +78,10 @@ bool deploy my-project ./src --message "Added dark mode" --exclude "*.test.js"
 ```
 
 - `--message` / `-m` — Commit message
-- `--exclude` — Exclude pattern (repeatable, default excludes: `.git`, `node_modules`, `__pycache__`)
+- `--exclude` — Exclude pattern (repeatable)
 - Binary files are automatically skipped
 - Respects `.boolignore` files (gitignore syntax)
+- Default excludes: `.git`, `node_modules`, `__pycache__`, `.DS_Store`, `.bool`
 
 #### Pull options
 
@@ -74,9 +96,22 @@ bool pull my-project ./local-copy --version 3
 All commands support `--json` for machine-readable output:
 
 ```bash
-bool list --json
-bool info my-project --json
+bool bools list --json
+bool bools info my-project --json
 ```
+
+## Project Config
+
+Running `shipit`, `deploy`, `pull`, or `bools info` creates a `.bool/config` file in the project directory. This JSON file stores `slug` and `name` so you can run commands without specifying the slug each time:
+
+```bash
+cd my-project
+bool deploy              # slug read from .bool/config
+bool bools info          # slug read from .bool/config
+bool versions            # slug read from .bool/config
+```
+
+Add `.bool/` to your `.gitignore`.
 
 ## Project Structure
 
@@ -88,9 +123,11 @@ bool-cli/
     commands/
       auth.js            # auth login, auth status
       bools.js           # bools list, create, info, update, delete, open, visibility
+      shipit.js          # shipit (anonymous create + deploy)
       versions.js        # versions, deploy, pull
     utils/
-      config.js          # Config file + env var loading
       api.js             # API client (fetch-based)
+      config.js          # Global config + project-level .bool/config
+      files.js           # File reading, .boolignore, binary detection
       output.js          # Output formatting (tables, colors, JSON)
 ```
