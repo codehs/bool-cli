@@ -6,6 +6,7 @@ import { register as auth } from '../src/commands/auth.js';
 import { register as bools } from '../src/commands/bools.js';
 import { register as shipit } from '../src/commands/shipit.js';
 import { register as versions } from '../src/commands/versions.js';
+import { register as skill } from '../src/commands/skill.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json');
@@ -21,5 +22,6 @@ auth(program);
 bools(program);
 shipit(program);
 versions(program);
+skill(program);
 
 program.parse();
