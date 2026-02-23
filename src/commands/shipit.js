@@ -38,11 +38,14 @@ export function register(program) {
         process.exit(1);
       }
 
+      const secret = projConfig.secret || null;
+
       let url, body;
       if (isUpdate) {
         url = `${baseUrl}/api/bools/${slug}/versions-anonymous/`;
         body = { files };
         if (opts.message) body.commit_message = opts.message;
+        if (secret) body.secret = secret;
       } else {
         url = `${baseUrl}/api/bools/create-anonymous/`;
         body = { name };
@@ -70,7 +73,9 @@ export function register(program) {
         const liveUrl = `https://${resultSlug}.bool01.com`;
 
         // Write/update the project config so future runs reuse this bool
-        writeProjectConfig(absDir, { slug: resultSlug, name: resultName });
+        const configData = { slug: resultSlug, name: resultName };
+        if (!isUpdate && data.secret) configData.secret = data.secret;
+        writeProjectConfig(absDir, configData);
 
         if (isUpdate) {
           process.stdout.write(liveUrl + '\n');
