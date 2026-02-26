@@ -75,7 +75,7 @@ Deprecated but still supported:
 | Command | Description |
 |---|---|
 | `bool versions [slug]` | List version history |
-| `bool deploy [slug] [dir]` | Deploy local files as a new version |
+| `bool deploy [slug] [dir]` | Deploy local files as a new version (creates Bool if needed) |
 | `bool pull [slug] [dir]` | Download files to a local directory |
 
 #### Deploy options
@@ -84,11 +84,13 @@ Deprecated but still supported:
 bool deploy my-project ./src --message "Added dark mode" --exclude "*.test.js"
 ```
 
+- **Auto-create**: If no slug is provided and `.bool/config` doesn't exist, a new Bool is created automatically (named after the directory)
 - `--message` / `-m` — Commit message
 - `--exclude` — Exclude pattern (repeatable)
 - Binary files are automatically skipped
 - Respects `.boolignore` files (gitignore syntax)
 - Default excludes: `.git`, `node_modules`, `__pycache__`, `.DS_Store`, `.bool`
+- **Live URL**: Displayed in output after successful deployment
 
 #### Pull options
 

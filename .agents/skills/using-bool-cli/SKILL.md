@@ -50,7 +50,7 @@ Visibility options: `private`, `team`, `unlisted`, `public`
 
 ```bash
 bool versions [slug]                           # List version history
-bool deploy [slug] [dir] -m "commit message"   # Deploy local files as new version
+bool deploy [slug] [dir] -m "commit message"   # Deploy local files (auto-creates Bool if needed)
 bool pull [slug] [dir] --version N             # Download files locally
 ```
 
@@ -104,13 +104,22 @@ Add `.bool/` to your `.gitignore` to keep secrets local.
 
 ## Common Workflows
 
-### Create and deploy a new Bool
+### Create and deploy a new Bool (Option A: explicit)
 
 ```bash
 bool bools create "My Project"
 # note the slug from the output, e.g. "my-project"
 bool deploy my-project ./src -m "Initial deploy"
 ```
+
+### Create and deploy a new Bool (Option B: auto-create)
+
+```bash
+# Deploy without a slug—a new Bool is created automatically
+bool deploy ./src -m "Initial deploy"
+```
+
+This creates a Bool named after the directory and displays the live URL.
 
 ### Quick anonymous ship (no API key needed)
 
@@ -154,6 +163,8 @@ bool deploy my-project ./src --exclude "*.test.js" --exclude "*.spec.js" -m "Pro
 ## Deploy Behavior
 
 - `bool deploy` recursively reads the directory and uploads all text files
+- **Auto-create Bool**: If no slug is provided (and no `.bool/config` exists), a new Bool is created automatically, named after the directory
+- **Live URL**: The live deployment URL is displayed in the output after successful deployment
 - **Binary files** (images, PDFs, archives, fonts, etc.) are automatically skipped
 - **Default excludes**: `.git`, `node_modules`, `__pycache__`, `.DS_Store`, `.bool`
 - **Custom excludes**: Use `--exclude <pattern>` (repeatable) for additional patterns

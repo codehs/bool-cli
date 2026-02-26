@@ -56,7 +56,7 @@ export function register(program) {
 
   program
     .command('deploy')
-    .description('Deploy local files as a new version')
+    .description('Deploy local files as a new version (creates bool if needed)')
     .argument('[slug]', 'Bool slug (reads from .bool/config if omitted)')
     .argument('[dir]', 'Directory to deploy (default: .)')
     .option('-m, --message <msg>', 'Commit message')
@@ -74,11 +74,7 @@ export function register(program) {
       }
 
       const projConfig = readProjectConfig(absDir);
-      const slug = resolvedSlugArg || projConfig.slug;
-      if (!slug) {
-        error('Provide a slug or run from a directory with a .bool/config file');
-        process.exit(1);
-      }
+      let slug = resolvedSlugArg || projConfig.slug;
 
       const ig = loadIgnore(absDir);
       if (opts.exclude.length) ig.add(opts.exclude);
@@ -89,15 +85,28 @@ export function register(program) {
         process.exit(1);
       }
 
-      info(`Deploying ${files.length} file(s) from ${absDir}…`);
-
-      const body = { files };
-      if (opts.message) body.commit_message = opts.message;
-
       try {
+        // Create a new bool if no slug exists
+        if (!slug) {
+          const boolName = projConfig.name || path.basename(absDir);
+          if (!opts.json) info(`Creating new Bool "${boolName}"…`);
+          const createData = await post('/bools/create/', { name: boolName });
+          slug = createData.slug;
+          if (!opts.json) success(`Created Bool "${createData.name}" (${slug})`);
+        }
+
+        info(`Deploying ${files.length} file(s) from ${absDir}…`);
+
+        const body = { files };
+        if (opts.message) body.commit_message = opts.message;
+
         const data = await post(`/bools/${slug}/versions/`, body);
         if (opts.json) return printJson(data);
+        
+        const liveUrl = `https://${slug}.bool01.com`;
         success(`Deployed v${data.version_number} (${data.file_count} files)`);
+        info(`Live URL: ${liveUrl}`);
+        
         // Keep project config in sync
         writeProjectConfig(absDir, { slug, ...(data.name ? { name: data.name } : {}) });
 
