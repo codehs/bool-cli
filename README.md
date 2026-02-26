@@ -52,16 +52,23 @@ Creates an anonymous Bool and uploads files in one step. On subsequent runs from
 
 | Command | Description |
 |---|---|
-| `bool bools list [count]` | List Bools (default: 5) |
-| `bool bools create <name>` | Create a new Bool |
-| `bool bools info [slug]` | Show Bool details + latest version |
-| `bool bools update [slug] [--name] [--description] [--visibility]` | Update a Bool |
-| `bool bools delete [slug] [-y]` | Delete (with confirmation, skip with `-y`) |
-| `bool bools open [slug]` | Open editor URL in browser |
-| `bool bools visibility [slug]` | Show Bool visibility |
-| `bool bools visibility [slug] --set <value>` | Change visibility (`private`, `team`, `unlisted`, `public`) |
+| `bool list [--limit <n>]` | List Bools (default: 20) |
+| `bool create <name>` | Create a new Bool |
+| `bool show [slug]` | Show Bool details + latest version |
+| `bool update [slug] [--name] [--description] [--visibility]` | Update a Bool |
+| `bool delete [slug] [-y]` | Delete (with confirmation, skip with `-y`) |
+| `bool open [slug]` | Open editor URL in browser |
 
-> **Slug resolution:** When `[slug]` is omitted, commands read it from the `.bool/config` file in the current directory. This file is created automatically by `shipit`, `deploy`, `pull`, and `info`.
+Aliases:
+- `bool ls` for `bool list`
+- `bool get` / `bool info` for `bool show`
+- `bool rm` for `bool delete`
+
+Deprecated but still supported:
+- `bool bools ...` commands now print a deprecation warning and map to top-level commands.
+- `bool bools visibility ...` is deprecated; use `bool update [slug] --visibility <value>`.
+
+> **Slug resolution:** When `[slug]` is omitted, commands read it from the `.bool/config` file in the current directory. This file is created automatically by `shipit`, `deploy`, `pull`, and `show` (or `info` alias).
 
 ### Versions & Deployment
 
@@ -96,18 +103,18 @@ bool pull my-project ./local-copy --version 3
 All commands support `--json` for machine-readable output:
 
 ```bash
-bool bools list --json
-bool bools info my-project --json
+bool list --json
+bool show my-project --json
 ```
 
 ## Project Config
 
-Running `shipit`, `deploy`, `pull`, or `bools info` creates a `.bool/config` file in the project directory. This JSON file stores `slug` and `name` so you can run commands without specifying the slug each time:
+Running `shipit`, `deploy`, `pull`, or `show` creates a `.bool/config` file in the project directory. This JSON file stores `slug` and `name` so you can run commands without specifying the slug each time:
 
 ```bash
 cd my-project
 bool deploy              # slug read from .bool/config
-bool bools info          # slug read from .bool/config
+bool show                # slug read from .bool/config
 bool versions            # slug read from .bool/config
 ```
 
@@ -122,7 +129,7 @@ bool-cli/
   src/
     commands/
       auth.js            # auth login, auth status
-      bools.js           # bools list, create, info, update, delete, open, visibility
+      bools.js           # top-level bool commands (+ deprecated bools wrappers)
       shipit.js          # shipit (anonymous create + deploy)
       versions.js        # versions, deploy, pull
     utils/
