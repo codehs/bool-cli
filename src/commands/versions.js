@@ -2,8 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { get, post } from '../utils/api.js';
 import { loadIgnore, readDir } from '../utils/files.js';
-import { success, error, info, table, json as printJson } from '../utils/output.js';
+import { success, error, info, warn, table, json as printJson } from '../utils/output.js';
 import { readProjectConfig, writeProjectConfig } from '../utils/config.js';
+import { uploadFiles } from '../utils/upload.js';
 
 // If a single positional arg looks like a directory path, treat it as dir rather than slug.
 function resolveSlugAndDir(slugArg, dirArg) {
@@ -60,6 +61,8 @@ export function register(program) {
     .argument('[dir]', 'Directory to deploy (default: .)')
     .option('-m, --message <msg>', 'Commit message')
     .option('--exclude <pattern>', 'Exclude pattern (repeatable)', (val, prev) => [...prev, val], [])
+    .option('--no-upload', 'Skip file uploads')
+    .option('--all-files', 'Upload all files, not just changed ones')
     .option('--json', 'Output as JSON')
     .action(async (slugArg, dirArg, opts) => {
       const { slug: resolvedSlugArg, dir } = resolveSlugAndDir(slugArg, dirArg);
@@ -97,6 +100,13 @@ export function register(program) {
         success(`Deployed v${data.version_number} (${data.file_count} files)`);
         // Keep project config in sync
         writeProjectConfig(absDir, { slug, ...(data.name ? { name: data.name } : {}) });
+
+        // Upload binary/asset files (non-blocking)
+        try {
+          await uploadFiles(slug, absDir, { ig, skip: !opts.upload, allFiles: opts.allFiles });
+        } catch (uploadErr) {
+          warn(`File upload error: ${uploadErr.message}`);
+        }
       } catch (err) {
         error(err.message);
         process.exit(1);

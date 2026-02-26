@@ -3,6 +3,7 @@ import path from 'node:path';
 import chalk from 'chalk';
 import { loadIgnore, readDir } from '../utils/files.js';
 import { readProjectConfig, writeProjectConfig } from '../utils/config.js';
+import { uploadFiles } from '../utils/upload.js';
 
 export function register(program) {
   program
@@ -12,6 +13,7 @@ export function register(program) {
     .option('--slug <slug>', 'Update an existing anonymous Bool instead of creating a new one')
     .option('--name <name>', 'Bool name (defaults to config, then directory name)')
     .option('-m, --message <msg>', 'Commit message (used when updating)')
+    .option('--no-upload', 'Skip file uploads')
     .option('--base-url <url>', 'Base URL (or set BOOL_BASE_URL)')
     .action(async (directory, opts) => {
       const absDir = path.resolve(directory);
@@ -87,6 +89,13 @@ export function register(program) {
           process.stderr.write(chalk.green('✔') + ` Shipped "${resultName}" (${files.length} files)\n`);
           process.stderr.write(`  ${liveUrl}\n`);
           process.stderr.write(`  slug: ${resultSlug}\n`);
+        }
+
+        // Upload binary/asset files (non-blocking)
+        try {
+          await uploadFiles(resultSlug, absDir, { ig, skip: !opts.upload });
+        } catch {
+          // Upload failures should not block shipit
         }
       } catch (err) {
         process.stderr.write(chalk.red('✖') + ` ${err.message}\n`);
