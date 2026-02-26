@@ -3,6 +3,23 @@ import path from 'node:path';
 import { getApiKey, getApiUrl } from './config.js';
 import { success, error as logError, info, warn } from './output.js';
 
+const MIME_TYPES = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.pdf': 'application/pdf',
+  '.csv': 'text/csv',
+  '.xls': 'application/vnd.ms-excel',
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.doc': 'application/msword',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.txt': 'text/plain',
+  '.json': 'application/json',
+  '.xml': 'application/xml',
+};
+
 const UPLOADABLE_EXTENSIONS = new Set([
   '.jpg', '.jpeg', '.png', '.gif', '.webp',
   '.pdf', '.csv', '.xls', '.xlsx', '.doc', '.docx',
@@ -63,7 +80,9 @@ function filterChangedFiles(files, dir) {
 async function uploadSingleFile(slug, file, apiKey) {
   const url = `${getApiUrl()}/bools/${slug}/upload/`;
   const fileContent = fs.readFileSync(file.fullPath);
-  const blob = new Blob([fileContent]);
+  const ext = path.extname(file.fullPath).toLowerCase();
+  const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
+  const blob = new Blob([fileContent], { type: mimeType });
 
   const formData = new FormData();
   formData.append('file', blob, path.basename(file.fullPath));
