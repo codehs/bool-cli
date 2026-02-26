@@ -62,8 +62,8 @@ async function listBools(limitValue, asJson) {
   if (!items.length) return info('No Bools found.');
 
   table(
-    ['Name', 'Slug', 'Visibility', 'Updated'],
-    items.map((b) => [b.name, b.slug, b.visibility, b.updated_at]),
+    ['Name', 'Slug', 'Visibility', 'URL', 'Updated'],
+    items.map((b) => [b.name, b.slug, b.visibility, `https://${b.slug}.bool01.com`, b.updated_at]),
   );
 }
 
