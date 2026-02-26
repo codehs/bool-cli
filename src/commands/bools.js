@@ -63,7 +63,7 @@ async function listBools(limitValue, asJson) {
 
   table(
     ['Name', 'Slug', 'Visibility', 'URL', 'Updated'],
-    items.map((b) => [b.name, b.slug, b.visibility, `${b.slug}.bool01.com`, b.updated_at]),
+    items.map((b) => [b.name, b.slug, b.visibility, `https://${b.slug}.bool01.com`, b.updated_at]),
   );
 }
 
