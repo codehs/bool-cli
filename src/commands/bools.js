@@ -173,10 +173,6 @@ async function showOrSetVisibility(slugArg, setValue, asJson) {
   info(`Visibility: ${data.visibility}`);
 }
 
-function warnDeprecated(message, asJson) {
-  if (!asJson) warn(message);
-}
-
 export function register(program) {
   program
     .command('list')
@@ -263,123 +259,6 @@ export function register(program) {
         await openBool(slug);
       } catch (err) {
         error(err.message);
-        process.exit(1);
-      }
-    });
-
-  const boolsCmd = program
-    .command('bools')
-    .description('Manage Bools (deprecated: use top-level commands)');
-
-  boolsCmd
-    .command('list')
-    .description('Deprecated: use "bool list"')
-    .argument('[count]', 'Number of Bools to show', '5')
-    .option('--json', 'Output as JSON')
-    .action(async (count, opts) => {
-      warnDeprecated('Deprecated: use `bool list --limit <n>`', opts.json);
-      try {
-        await listBools(count, opts.json);
-      } catch (err) {
-        error(err.message);
-        process.exit(1);
-      }
-    });
-
-  boolsCmd
-    .command('create')
-    .description('Deprecated: use "bool create"')
-    .argument('<name>', 'Bool name')
-    .option('--json', 'Output as JSON')
-    .action(async (name, opts) => {
-      warnDeprecated('Deprecated: use `bool create <name>`', opts.json);
-      try {
-        await createBool(name, opts.json);
-      } catch (err) {
-        error(err.message);
-        process.exit(1);
-      }
-    });
-
-  boolsCmd
-    .command('info')
-    .description('Deprecated: use "bool show"')
-    .argument('[slug]', 'Bool slug (reads from .bool/config if omitted)')
-    .option('--json', 'Output as JSON')
-    .action(async (slug, opts) => {
-      warnDeprecated('Deprecated: use `bool show <slug>`', opts.json);
-      try {
-        await showBool(slug, opts.json);
-      } catch (err) {
-        error(err.message);
-        process.exit(1);
-      }
-    });
-
-  boolsCmd
-    .command('update')
-    .description('Deprecated: use "bool update"')
-    .argument('[slug]', 'Bool slug (reads from .bool/config if omitted)')
-    .option('--name <name>', 'New name')
-    .option('--description <desc>', 'New description')
-    .option('--visibility <vis>', `Visibility: ${VALID_VISIBILITIES.join('|')}`)
-    .option('--json', 'Output as JSON')
-    .action(async (slug, opts) => {
-      warnDeprecated('Deprecated: use `bool update <slug> [options]`', opts.json);
-      try {
-        await updateBool(slug, opts, opts.json);
-      } catch (err) {
-        error(err.message);
-        process.exit(1);
-      }
-    });
-
-  boolsCmd
-    .command('delete')
-    .description('Deprecated: use "bool delete"')
-    .argument('[slug]', 'Bool slug (reads from .bool/config if omitted)')
-    .option('-y, --yes', 'Skip confirmation')
-    .action(async (slug, opts) => {
-      warn('Deprecated: use `bool delete <slug>`');
-      try {
-        await deleteBool(slug, opts.yes);
-      } catch (err) {
-        error(err.message);
-        process.exit(1);
-      }
-    });
-
-  boolsCmd
-    .command('open')
-    .description('Deprecated: use "bool open"')
-    .argument('[slug]', 'Bool slug (reads from .bool/config if omitted)')
-    .action(async (slug) => {
-      warn('Deprecated: use `bool open <slug>`');
-      try {
-        await openBool(slug);
-      } catch (err) {
-        error(err.message);
-        process.exit(1);
-      }
-    });
-
-  boolsCmd
-    .command('visibility')
-    .description('Deprecated: use "bool update <slug> --visibility <value>"')
-    .argument('[slug]', 'Bool slug (reads from .bool/config if omitted)')
-    .option('--set <value>', `Set visibility to: ${VALID_VISIBILITIES.join('|')}`)
-    .option('--json', 'Output as JSON')
-    .action(async (slug, opts) => {
-      warnDeprecated('Deprecated: use `bool update <slug> --visibility <value>`', opts.json);
-      try {
-        await showOrSetVisibility(slug, opts.set, opts.json);
-      } catch (err) {
-        if (err.message.includes('404')) {
-          const resolvedSlug = resolveSlug(slug) || slug || '(unknown)';
-          error(`Site "${resolvedSlug}" not found`);
-        } else {
-          error(err.message);
-        }
         process.exit(1);
       }
     });
