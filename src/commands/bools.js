@@ -73,6 +73,10 @@ async function createBool(name, asJson) {
   if (asJson) return printJson(data);
   success(`Created "${data.name}" (${data.slug})`);
   info(`URL: ${data.url}`);
+
+  // Write .bool/config so subsequent commands (deploy, show, etc.)
+  // automatically target this Bool without needing the slug explicitly.
+  writeProjectConfig(process.cwd(), { slug: data.slug, name: data.name });
 }
 
 async function showBool(slugArg, asJson) {
