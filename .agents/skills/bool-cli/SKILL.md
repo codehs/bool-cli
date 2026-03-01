@@ -1,11 +1,22 @@
 ---
 name: bool-cli
 description: "Deploy sites to Bool.com via the bool CLI. Use when creating, deploying, updating, or managing Bool projects."
+homepage: "https://bool.com"
+source: "https://github.com/codehs/bool-cli"
 metadata:
   openclaw:
     emoji: "🚀"
     requires:
       bins: ["bool"]
+      env:
+        - name: BOOL_API_KEY
+          description: "API key for Bool.com (optional if using `bool auth login`)"
+          required: false
+    config_paths:
+      - path: "~/.config/bool-cli/config.json"
+        description: "Stores API key and global CLI config"
+      - path: ".bool/config"
+        description: "Per-project config (slug, name, secret). Add .bool/ to .gitignore"
     install:
       - id: npm
         kind: npm
