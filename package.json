@@ -3,9 +3,24 @@
   "version": "0.2.0",
   "description": "CLI tool for bool.com",
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/codehs/bool-cli.git"
+  },
   "bin": {
     "bool": "./bin/bool.js"
   },
+  "files": [
+    "bin/",
+    "src/",
+    "LICENSE"
+  ],
+  "keywords": [
+    "bool",
+    "cli",
+    "boolai"
+  ],
   "dependencies": {
     "chalk": "^5.3.0",
     "cli-table3": "^0.6.5",
