@@ -40,10 +40,10 @@ The API key is saved to `~/.config/bool-cli/config.json`. The `BOOL_API_KEY` env
 
 ## Important: Non-Interactive Commands
 
-The `bool auth login` and `bool bools delete <slug>` commands are **interactive** (they prompt for input). When using them from an agent:
+The `bool auth login` and `bool delete <slug>` commands are **interactive** (they prompt for input). When using them from an agent:
 
 - **Auth**: Set the `BOOL_API_KEY` environment variable instead of running `bool auth login`
-- **Delete**: Always pass `-y` / `--yes` to skip the confirmation prompt: `bool bools delete <slug> -y`
+- **Delete**: Always pass `-y` / `--yes` to skip the confirmation prompt: `bool delete <slug> -y`
 
 ## Commands Reference
 
@@ -57,24 +57,28 @@ bool auth status         # Check auth + API health (non-interactive)
 ### Managing Bools
 
 ```bash
-bool bools list [count]        # List Bools (default: 5)
-bool bools create <name>       # Create a new Bool
-bool bools info [slug]         # Show Bool details + latest version info
-bool bools update [slug] --name "New Name" --description "desc" --visibility public
-bool bools delete [slug] -y    # Delete a Bool (always use -y to skip prompt)
-bool bools open [slug]         # Open Bool in browser
-bool bools visibility [slug]         # Show current visibility
-bool bools visibility [slug] --set private    # Change visibility
+bool list [-l, --limit <n>]                          # List Bools (default limit: 20, aliases: ls)
+bool create <name>                                   # Create a new Bool
+bool show [slug]                                     # Show Bool details + latest version info (aliases: get, info)
+bool update [slug] --name "New Name" --description "desc" --visibility <vis>
+bool delete [slug] -y                                # Delete a Bool (always use -y to skip prompt, aliases: rm)
+bool open [slug]                                     # Open Bool in browser
 ```
 
 Visibility options: `private`, `team`, `unlisted`, `public`
 
+All commands support optional `[slug]` argument (reads from `.bool/config` if omitted).
+
 ### Versions & Deployment
 
 ```bash
-bool versions [slug]                           # List version history
-bool deploy [slug] [dir] -m "commit message"   # Deploy local files (auto-creates Bool if needed)
-bool pull [slug] [dir] --version N             # Download files locally
+bool versions [slug]                                 # List version history
+bool deploy [slug] [dir] -m "message"                # Deploy local files (auto-creates Bool if needed)
+bool deploy [slug] [dir] --exclude "pattern"         # Exclude patterns (repeatable)
+bool deploy [slug] [dir] --no-upload                 # Skip file uploads (text only)
+bool deploy [slug] [dir] --all-files                 # Upload all files, not just changed ones
+bool pull [slug] [dir]                               # Download files from a Bool
+bool pull [slug] [dir] --version <n>                 # Pull a specific version
 ```
 
 ### Quick Ship (Anonymous Bools)
@@ -82,9 +86,11 @@ bool pull [slug] [dir] --version N             # Download files locally
 Ship a project without needing an API key:
 
 ```bash
-bool shipit [directory]                        # Create anonymous Bool + deploy
-bool shipit --slug <slug> -m "update message"  # Update existing anonymous Bool
-bool shipit --name "My Project"                # Set a custom name
+bool shipit [directory]                              # Create anonymous Bool + deploy (default dir: .)
+bool shipit [directory] --slug <slug> -m "message"   # Update existing anonymous Bool
+bool shipit [directory] --name "My Project"          # Set a custom name
+bool shipit [directory] --base-url <url>             # Custom base URL (or set BOOL_BASE_URL env)
+bool shipit [directory] --no-upload                  # Skip file uploads
 ```
 
 The `shipit` command stores the slug and secret in `.bool/config` so subsequent runs in the same directory automatically update the same Bool.
@@ -94,8 +100,8 @@ The `shipit` command stores the slug and secret in `.bool/config` so subsequent 
 All commands support `--json` for machine-readable output. **Always use `--json` when you need to parse output programmatically.**
 
 ```bash
-bool bools list --json
-bool bools info my-project --json
+bool list --json
+bool show my-project --json
 bool versions my-project --json
 ```
 
@@ -120,7 +126,7 @@ bool deploy my-project ./src -m "Initial deploy"
 # After that, run from the same directory and slug is read from .bool/config
 bool deploy -m "Another deploy"
 bool versions
-bool bools info
+bool show
 ```
 
 Add `.bool/` to your `.gitignore` to keep secrets local.
@@ -130,7 +136,7 @@ Add `.bool/` to your `.gitignore` to keep secrets local.
 ### Create and deploy a new Bool (Option A: explicit)
 
 ```bash
-bool bools create "My Project"
+bool create "My Project"
 # note the slug from the output, e.g. "my-project"
 bool deploy my-project ./src -m "Initial deploy"
 ```
@@ -164,23 +170,29 @@ bool deploy my-project ./my-project -m "Updated files"
 ### Check what's deployed
 
 ```bash
-bool bools info my-project            # See latest version summary
-bool versions my-project              # See full version history
-bool pull my-project ./tmp            # Download current files to inspect
+bool show my-project            # See latest version summary
+bool versions my-project        # See full version history
+bool pull my-project ./tmp      # Download current files to inspect
 ```
 
 ### Manage visibility
 
 ```bash
-bool bools visibility my-project                 # Show current visibility
-bool bools visibility my-project --set private    # Make it private
-bool bools visibility my-project --set public     # Make it public
+bool update my-project --visibility private     # Make it private
+bool update my-project --visibility public      # Make it public
+bool show my-project                            # Check visibility
 ```
 
 ### Deploy a specific subdirectory with exclusions
 
 ```bash
 bool deploy my-project ./src --exclude "*.test.js" --exclude "*.spec.js" -m "Production build"
+```
+
+### Get all slugs for scripting
+
+```bash
+bool list --json | jq '.[].slug'
 ```
 
 ## Deploy Behavior
@@ -217,8 +229,10 @@ bool deploy my-project ./src --exclude "*.test.js" --exclude "*.spec.js" -m "Pro
 
 ## Tips
 
-- Use `bool bools list --json | jq '.[].slug'` to get all slugs for scripting
+- Use `bool list --json | jq '.[].slug'` to get all slugs for scripting
 - The Bool **slug** (not name) is the identifier used in all commands
-- After `bool bools create`, the slug is derived from the name (e.g., "My Project" -> `my-project`)
-- Use `bool bools info <slug> --json` to get the latest version number programmatically
+- After `bool create`, the slug is derived from the name (e.g., "My Project" -> `my-project`)
+- Use `bool show <slug> --json` to get the latest version number programmatically
 - The live URL for any Bool is `https://<slug>.bool01.com`
+- When running commands in a directory with `.bool/config`, the `[slug]` argument is optional—it will be read from config
+- The `--json` flag is useful for programmatic access to command outputs
