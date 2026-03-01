@@ -1,6 +1,18 @@
 ---
-name: using-bool-cli
-description: "Manages Bool.com projects via the bool CLI. Use when deploying code to Bool.com, managing Bools, pulling remote files, or working with Bool versions."
+name: bool-cli
+description: "Deploy sites to Bool.com via the bool CLI. Use when creating, deploying, updating, or managing Bool projects."
+metadata:
+  openclaw:
+    emoji: "🚀"
+    requires:
+      bins: ["bool"]
+    install:
+      - id: npm
+        kind: npm
+        package: bool-cli
+        global: true
+        bins: ["bool"]
+        label: "Install bool-cli (npm)"
 ---
 
 # Using bool-cli
@@ -9,7 +21,7 @@ CLI tool for managing projects on [Bool.com](https://bool.com). Requires Node.js
 
 ## Prerequisites
 
-1. **Install**: `npm install -g bool-cli` (or `npm link` from the bool-cli repo)
+1. **Install**: `npm install -g bool-cli`
 2. **Authenticate**: Set `BOOL_API_KEY` env var, or run `bool auth login` interactively
 3. **Verify**: Run `bool auth status` to confirm the connection
 
