@@ -206,6 +206,14 @@ bool list --json | jq '.[].slug'
 - **`.boolignore`**: If a `.boolignore` file exists in the deploy directory, it is respected (gitignore syntax)
 - File paths in the payload are **relative** to the deploy directory
 
+## File Uploads
+
+- **Authentication required**: File uploads only work when you are authenticated (API key configured or logged in)
+- **File size limit**: Only files **under 5MB** are uploaded. Larger files are skipped
+- **Directory scope**: Uploads include all eligible files in the specified directory and its subdirectories
+- **Use `--no-upload`**: To skip file uploads entirely and only update text metadata, use the `--no-upload` flag
+- **Error on auth failure**: If not authenticated, the deploy command fails with: `No API key configured. Run: bool auth login`
+
 ## Pull Behavior
 
 - `bool pull <slug>` downloads files to `./<slug>/` by default
