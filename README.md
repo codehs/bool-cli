@@ -5,8 +5,7 @@ CLI tool for managing projects on [bool.com](https://bool.com).
 ## Installation
 
 ```bash
-npm install
-npm link
+npm install -g bool-cli
 ```
 
 This installs the `bool` command globally.
