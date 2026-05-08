@@ -1,7 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { success, error, info } from '../utils/output.js';
+import { success, info, data as printData } from '../utils/output.js';
+import { action } from '../utils/action.js';
+import { CliError, EXIT } from '../utils/exit.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PKG_ROOT = path.resolve(__dirname, '..', '..');
@@ -27,23 +29,25 @@ export function register(program) {
     .description('Download the bool-cli agent skill into your project')
     .argument('[directory]', 'Target directory (default: current directory)', '.')
     .option('--output <path>', 'Custom output path for the skill folder')
-    .action((directory, opts) => {
+    .action(action((directory, opts) => {
       const baseDir = path.resolve(opts.output || directory);
-
       if (!fs.existsSync(SKILL_SRC)) {
-        error('Skill files not found in the bool-cli package.');
-        process.exit(1);
+        throw new CliError('Skill files not found in the bool-cli package.', EXIT.NOT_FOUND);
       }
-
       const destDir = path.join(baseDir, '.agents', 'skills', 'using-bool-cli');
 
-      try {
-        copyDir(SKILL_SRC, destDir);
+      if (opts.dryRun) {
+        info(`[dry-run] Would install skill to ${destDir}`);
+        return;
+      }
+
+      copyDir(SKILL_SRC, destDir);
+
+      const summary = { installed_to: destDir };
+      const shaped = printData(summary);
+      if (shaped !== undefined) {
         success(`Skill installed to ${path.relative(process.cwd(), destDir) || destDir}`);
         info('Agents can now discover the bool-cli skill in your project.');
-      } catch (err) {
-        error(err.message);
-        process.exit(1);
       }
-    });
+    }));
 }

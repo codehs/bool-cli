@@ -2,15 +2,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { get, post } from '../utils/api.js';
 import { loadIgnore, readDir } from '../utils/files.js';
-import { success, error, info, warn, table, json as printJson } from '../utils/output.js';
+import { success, info, warn, table, data as printData, listFooter } from '../utils/output.js';
 import { readProjectConfig, writeProjectConfig } from '../utils/config.js';
 import { uploadFiles } from '../utils/upload.js';
+import { action, usage } from '../utils/action.js';
 
 // If a single positional arg looks like a directory path, treat it as dir rather than slug.
 function resolveSlugAndDir(slugArg, dirArg) {
   let slug = slugArg;
   let dir = dirArg || '.';
-
   if (slug && !dirArg) {
     const maybe = path.resolve(slug);
     if (fs.existsSync(maybe) && fs.statSync(maybe).isDirectory()) {
@@ -18,7 +18,6 @@ function resolveSlugAndDir(slugArg, dirArg) {
       slug = undefined;
     }
   }
-
   return { slug, dir };
 }
 
@@ -27,50 +26,40 @@ export function register(program) {
     .command('versions')
     .description('List version history')
     .argument('[slug]', 'Bool slug (reads from .bool/config if omitted)')
-    .option('--json', 'Output as JSON')
-    .action(async (slugArg, opts) => {
-      const projConfig = readProjectConfig(process.cwd());
-      const slug = slugArg || projConfig.slug;
+    .action(action(async (slugArg) => {
+      const slug = slugArg || readProjectConfig(process.cwd()).slug;
       if (!slug) {
-        error('Provide a slug or run from a directory with a .bool/config file');
-        process.exit(1);
+        usage('Slug required.', {
+          hint: 'Pass <slug> or run from a directory with a .bool/config file.',
+        });
       }
-      try {
-        const data = await get(`/bools/${slug}/versions/`);
-        if (opts.json) return printJson(data);
-        if (!data.length) return info('No versions found.');
-        table(
-          ['Version', 'Files', 'Message', 'Created'],
-          data.map((v) => [
-            `v${v.version_number}`,
-            v.file_count,
-            v.commit_message || '',
-            v.created_at,
-          ]),
-        );
-      } catch (err) {
-        error(err.message);
-        process.exit(1);
-      }
-    });
+
+      const result = await get(`/bools/${slug}/versions/`);
+      const shaped = printData(result);
+      if (shaped === undefined) return;
+
+      if (!result.length) return info('No versions found.');
+      table(
+        ['Version', 'Files', 'Message', 'Created'],
+        result.map((v) => [`v${v.version_number}`, v.file_count, v.commit_message || '', v.created_at]),
+      );
+      listFooter(result.length, result.length, { hint: 'To narrow: add --select or --json.' });
+    }));
 
   program
     .command('deploy')
-    .description('Deploy local files as a new version (creates bool if needed)')
+    .description('Deploy local files as a new version (creates Bool if needed)')
     .argument('[slug]', 'Bool slug (reads from .bool/config if omitted)')
     .argument('[dir]', 'Directory to deploy (default: .)')
     .option('-m, --message <msg>', 'Commit message')
     .option('--exclude <pattern>', 'Exclude pattern (repeatable)', (val, prev) => [...prev, val], [])
-    .option('--no-upload', 'Skip file uploads')
+    .option('--no-upload', 'Skip binary asset uploads')
     .option('--all-files', 'Upload all files, not just changed ones')
-    .option('--json', 'Output as JSON')
-    .action(async (slugArg, dirArg, opts) => {
+    .action(action(async (slugArg, dirArg, opts) => {
       const { slug: resolvedSlugArg, dir } = resolveSlugAndDir(slugArg, dirArg);
-
       const absDir = path.resolve(dir);
       if (!fs.existsSync(absDir) || !fs.statSync(absDir).isDirectory()) {
-        error(`Not a directory: ${absDir}`);
-        process.exit(1);
+        usage(`Not a directory: ${absDir}`, { hint: 'Pass an existing directory path.' });
       }
 
       const projConfig = readProjectConfig(absDir);
@@ -81,46 +70,47 @@ export function register(program) {
 
       const files = readDir(absDir, ig);
       if (!files.length) {
-        error('No files found to deploy.');
-        process.exit(1);
+        usage('No files found to deploy.', { hint: 'Check .boolignore and --exclude patterns.' });
       }
 
-      try {
-        // Create a new bool if no slug exists
-        if (!slug) {
-          const boolName = projConfig.name || path.basename(absDir);
-          if (!opts.json) info(`Creating new Bool "${boolName}"…`);
-          const createData = await post('/bools/create/', { name: boolName });
-          slug = createData.slug;
-          if (!opts.json) success(`Created Bool "${createData.name}" (${slug})`);
-        }
+      if (opts.dryRun) {
+        info(`[dry-run] Would deploy ${files.length} file(s) from ${absDir}` + (slug ? ` to ${slug}` : ' (new Bool)'));
+        for (const f of files.slice(0, 20)) info(`  ${f.filename}`);
+        if (files.length > 20) info(`  …and ${files.length - 20} more`);
+        return;
+      }
 
-        info(`Deploying ${files.length} file(s) from ${absDir}…`);
+      // Create a new Bool if no slug exists
+      if (!slug) {
+        const boolName = projConfig.name || path.basename(absDir);
+        info(`Creating new Bool "${boolName}"…`);
+        const createData = await post('/bools/create/', { name: boolName });
+        slug = createData.slug;
+        success(`Created Bool "${createData.name}" (${slug})`);
+      }
 
-        const body = { files };
-        if (opts.message) body.commit_message = opts.message;
+      info(`Deploying ${files.length} file(s) from ${absDir}…`);
 
-        const data = await post(`/bools/${slug}/versions/`, body);
-        if (opts.json) return printJson(data);
-        
-        const liveUrl = `https://${slug}.bool01.com`;
-        success(`Deployed v${data.version_number} (${data.file_count} files)`);
+      const body = { files };
+      if (opts.message) body.commit_message = opts.message;
+
+      const result = await post(`/bools/${slug}/versions/`, body);
+      const liveUrl = `https://${slug}.bool01.com`;
+      writeProjectConfig(absDir, { slug, ...(result.name ? { name: result.name } : {}) });
+
+      const shaped = printData({ ...result, slug, url: liveUrl });
+      if (shaped !== undefined) {
+        success(`Deployed v${result.version_number} (${result.file_count} files)`);
         info(`Live URL: ${liveUrl}`);
-        
-        // Keep project config in sync
-        writeProjectConfig(absDir, { slug, ...(data.name ? { name: data.name } : {}) });
-
-        // Upload binary/asset files (non-blocking)
-        try {
-          await uploadFiles(slug, absDir, { ig, skip: !opts.upload, allFiles: opts.allFiles });
-        } catch (uploadErr) {
-          warn(`File upload error: ${uploadErr.message}`);
-        }
-      } catch (err) {
-        error(err.message);
-        process.exit(1);
       }
-    });
+
+      // Upload binary/asset files (non-blocking)
+      try {
+        await uploadFiles(slug, absDir, { ig, skip: !opts.upload, allFiles: opts.allFiles });
+      } catch (uploadErr) {
+        warn(`File upload error: ${uploadErr.message}`);
+      }
+    }));
 
   program
     .command('pull')
@@ -128,44 +118,54 @@ export function register(program) {
     .argument('[slug]', 'Bool slug (reads from .bool/config if omitted)')
     .argument('[dir]', 'Output directory')
     .option('--version <n>', 'Version number (default: latest)')
-    .option('--json', 'Output as JSON')
-    .action(async (slugArg, dirArg, opts) => {
+    .action(action(async (slugArg, dirArg, opts) => {
       const { slug: resolvedSlugArg, dir } = resolveSlugAndDir(slugArg, dirArg);
-
       const projConfig = readProjectConfig(path.resolve(dir || '.'));
       const slug = resolvedSlugArg || projConfig.slug;
       if (!slug) {
-        error('Provide a slug or run from a directory with a .bool/config file');
-        process.exit(1);
+        usage('Slug required.', {
+          hint: 'Pass <slug> or run from a directory with a .bool/config file.',
+        });
       }
 
       const outDir = path.resolve(dir || slug);
 
-      try {
-        let url = `/bools/${slug}/files/`;
-        if (opts.version) url += `?version_number=${opts.version}`;
+      let url = `/bools/${slug}/files/`;
+      if (opts.version) url += `?version_number=${opts.version}`;
 
-        const data = await get(url);
-        if (opts.json) return printJson(data);
+      const result = await get(url);
+      const files = result.files || [];
 
-        const files = data.files || [];
-        if (!files.length) {
-          info('No files to download.');
-          return;
-        }
-
-        for (const f of files) {
-          const filePath = path.join(outDir, f.filename);
-          fs.mkdirSync(path.dirname(filePath), { recursive: true });
-          fs.writeFileSync(filePath, f.code);
-        }
-
-        success(`Pulled ${files.length} file(s) to ${outDir} (v${data.version_number})`);
-        // Keep project config in sync with the pulled directory
-        writeProjectConfig(outDir, { slug, ...(data.name ? { name: data.name } : {}) });
-      } catch (err) {
-        error(err.message);
-        process.exit(1);
+      if (opts.dryRun) {
+        info(`[dry-run] Would write ${files.length} file(s) to ${outDir}`);
+        for (const f of files.slice(0, 20)) info(`  ${f.filename}`);
+        if (files.length > 20) info(`  …and ${files.length - 20} more`);
+        return;
       }
-    });
+
+      if (!files.length) {
+        const shaped = printData({ slug, version_number: result.version_number, file_count: 0, output_dir: outDir });
+        if (shaped !== undefined) info('No files to download.');
+        return;
+      }
+
+      for (const f of files) {
+        const filePath = path.join(outDir, f.filename);
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
+        fs.writeFileSync(filePath, f.code);
+      }
+      writeProjectConfig(outDir, { slug, ...(result.name ? { name: result.name } : {}) });
+
+      const summary = {
+        slug,
+        version_number: result.version_number,
+        file_count: files.length,
+        output_dir: outDir,
+        files: files.map((f) => f.filename),
+      };
+      const shaped = printData(summary);
+      if (shaped !== undefined) {
+        success(`Pulled ${files.length} file(s) to ${outDir} (v${result.version_number})`);
+      }
+    }));
 }
