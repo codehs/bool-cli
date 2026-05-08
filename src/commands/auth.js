@@ -75,7 +75,10 @@ export function register(program) {
         healthy,
         ...(healthy ? {} : { error: healthError }),
       });
-      if (shaped === undefined) return;
+      if (shaped === undefined) {
+        if (!healthy) process.exitCode = EXIT.API;
+        return;
+      }
 
       info(`API key: ${masked}`);
       info(`API URL: ${getApiUrl()}`);
