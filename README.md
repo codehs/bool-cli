@@ -2,6 +2,8 @@
 
 CLI tool for managing projects on [bool.com](https://bool.com).
 
+`bool` follows the [Printing Press](https://printingpress.dev/) agent-native CLI conventions: machine-readable output by default when piped, typed exit codes, and standard flags on every command.
+
 ## Installation
 
 ```bash
@@ -15,9 +17,50 @@ This installs the `bool` command globally.
 ```bash
 bool auth login      # Paste your API key from the bool.com web UI
 bool auth status     # Verify connection
+bool auth doctor     # Diagnose auth + API connectivity
 ```
 
-Your API key is saved to `~/.config/bool-cli/config.json`. You can also set the `BOOL_API_KEY` environment variable.
+Your API key is saved to `~/.config/bool-cli/config.json`. You can also set the `BOOL_API_KEY` environment variable, or pipe a key into login:
+
+```bash
+echo "$BOOL_API_KEY" | bool auth login
+```
+
+## Agent-native flags
+
+These flags work on every command. They can appear in any position.
+
+| Flag | Description |
+|---|---|
+| `--json` | Output structured JSON. Implicit when stdout is piped. |
+| `--csv` | Output CSV. |
+| `--select <fields>` | Comma-separated keys to keep in structured output (e.g. `--select slug,visibility`). |
+| `--compact` | Keep only high-gravity fields (`id`, `slug`, `name`, `status`, `visibility`, `version_number`, `file_count`, `created_at`, `updated_at`, `url`). |
+| `--quiet` | Suppress status messages on stderr. |
+| `--no-color` | Disable ANSI colors (also honors `NO_COLOR`). |
+| `--no-input` | Fail instead of prompting for interactive input. |
+| `--dry-run` | Show what would happen without making changes. |
+
+Status messages (`✔ ✖ ℹ ⚠`) go to **stderr**. Structured data goes to **stdout**. This means you can pipe JSON without losing log output:
+
+```bash
+bool list | jq '.[].slug'
+bool show my-project --select slug,visibility,url
+bool list --csv > bools.csv
+```
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Success |
+| `2` | Usage error (missing/invalid argument) |
+| `3` | Not found |
+| `4` | Authentication failure |
+| `5` | API error |
+| `7` | Rate limited |
+
+Errors are written to stderr in the format `✖ <message>` followed by an indented hint pointing at the flag, value, or remediation step — so agents can self-correct in one retry without parsing free-text errors.
 
 ## Commands
 
@@ -25,8 +68,9 @@ Your API key is saved to `~/.config/bool-cli/config.json`. You can also set the 
 
 | Command | Description |
 |---|---|
-| `bool auth login` | Save API key |
+| `bool auth login` | Save API key (reads from stdin or prompts) |
 | `bool auth status` | Check auth + API health |
+| `bool auth doctor` | Diagnose auth + API connectivity |
 
 ### Ship It
 
@@ -63,11 +107,7 @@ Aliases:
 - `bool get` / `bool info` for `bool show`
 - `bool rm` for `bool delete`
 
-Deprecated but still supported:
-- `bool bools ...` commands now print a deprecation warning and map to top-level commands.
-- `bool bools visibility ...` is deprecated; use `bool update [slug] --visibility <value>`.
-
-> **Slug resolution:** When `[slug]` is omitted, commands read it from the `.bool/config` file in the current directory. This file is created automatically by `shipit`, `deploy`, `pull`, and `show` (or `info` alias).
+> **Slug resolution:** When `[slug]` is omitted, commands read it from the `.bool/config` file in the current directory. This file is created automatically by `shipit`, `deploy`, `pull`, and `show`.
 
 ### Versions & Deployment
 
@@ -99,14 +139,21 @@ bool pull my-project ./local-copy --version 3
 
 - `--version` — Specific version number (default: latest)
 
-### JSON output
-
-All commands support `--json` for machine-readable output:
+### Claim
 
 ```bash
-bool list --json
-bool show my-project --json
+bool claim [slug-or-directory] [--secret <secret>]
 ```
+
+Transfers an anonymous Bool to your account using the secret stored in `.bool/config`.
+
+### Skill
+
+```bash
+bool skill [directory]
+```
+
+Installs the bool-cli agent skill into the target directory's `.agents/` folder so coding agents discover the available CLI surface.
 
 ## Project Config
 
@@ -126,16 +173,20 @@ Add `.bool/` to your `.gitignore`.
 ```
 bool-cli/
   bin/
-    bool.js              # Entry point
+    bool.js              # Entry point + global flags
   src/
     commands/
-      auth.js            # auth login, auth status
-      bools.js           # top-level bool commands (+ deprecated bools wrappers)
+      auth.js            # auth login, status, doctor
+      bools.js           # list, create, show, update, delete, open
       shipit.js          # shipit (anonymous create + deploy)
       versions.js        # versions, deploy, pull
+      claim.js           # claim anonymous Bool
+      skill.js           # install agent skill
     utils/
-      api.js             # API client (fetch-based)
+      action.js          # action wrapper: typed errors + global flag plumbing
+      api.js             # API client → typed CliError on HTTP failure
       config.js          # Global config + project-level .bool/config
+      exit.js            # Typed exit codes (Printing Press convention)
       files.js           # File reading, .boolignore, binary detection
-      output.js          # Output formatting (tables, colors, JSON)
+      output.js          # Output: auto-JSON on pipe, CSV, --select, --compact
 ```

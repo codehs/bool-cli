@@ -1,9 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import chalk from 'chalk';
 import { loadIgnore, readDir } from '../utils/files.js';
 import { readProjectConfig, writeProjectConfig } from '../utils/config.js';
 import { uploadFiles } from '../utils/upload.js';
+import { success, info, data as printData } from '../utils/output.js';
+import { action, usage } from '../utils/action.js';
+import { CliError, EXIT } from '../utils/exit.js';
 
 export function register(program) {
   program
@@ -13,16 +15,14 @@ export function register(program) {
     .option('--slug <slug>', 'Update an existing anonymous Bool instead of creating a new one')
     .option('--name <name>', 'Bool name (defaults to config, then directory name)')
     .option('-m, --message <msg>', 'Commit message (used when updating)')
-    .option('--no-upload', 'Skip file uploads')
+    .option('--no-upload', 'Skip binary asset uploads')
     .option('--base-url <url>', 'Base URL (or set BOOL_BASE_URL)')
-    .action(async (directory, opts) => {
+    .action(action(async (directory, opts) => {
       const absDir = path.resolve(directory);
       if (!fs.existsSync(absDir) || !fs.statSync(absDir).isDirectory()) {
-        process.stderr.write(chalk.red('✖') + ` Not a directory: ${absDir}\n`);
-        process.exit(1);
+        usage(`Not a directory: ${absDir}`, { hint: 'Pass an existing directory path.' });
       }
 
-      // Load project-level config; CLI flags override config values
       const projConfig = readProjectConfig(absDir);
       const slug = opts.slug || projConfig.slug;
       const name = opts.name || projConfig.name || path.basename(absDir);
@@ -30,18 +30,19 @@ export function register(program) {
       const ig = loadIgnore(absDir);
       const files = readDir(absDir, ig);
 
-      const baseUrl = (opts.baseUrl || process.env.BOOL_BASE_URL || 'https://bool.com')
-        .replace(/\/+$/, '');
-
+      const baseUrl = (opts.baseUrl || process.env.BOOL_BASE_URL || 'https://bool.com').replace(/\/+$/, '');
       const isUpdate = Boolean(slug);
 
       if (isUpdate && !files.length) {
-        process.stderr.write(chalk.red('✖') + ' No files found to deploy.\n');
-        process.exit(1);
+        usage('No files found to deploy.', { hint: 'Check .boolignore patterns.' });
+      }
+
+      if (opts.dryRun) {
+        info(`[dry-run] Would ${isUpdate ? `update ${slug}` : `create new Bool "${name}"`} with ${files.length} file(s).`);
+        return;
       }
 
       const secret = projConfig.secret || null;
-
       let url, body;
       if (isUpdate) {
         url = `${baseUrl}/api/bools/${slug}/versions-anonymous/`;
@@ -54,52 +55,62 @@ export function register(program) {
         if (files.length) body.files = files;
       }
 
+      let res;
       try {
-        const res = await fetch(url, {
+        res = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
           signal: AbortSignal.timeout(30_000),
         });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          const msg = data.error || JSON.stringify(data);
-          process.stderr.write(chalk.red('✖') + ` ${msg}\n`);
-          process.exit(1);
-        }
-
-        const resultSlug = isUpdate ? slug : data.slug;
-        const resultName = isUpdate ? (projConfig.name || name) : data.name;
-        const liveUrl = `https://${resultSlug}.bool01.com`;
-
-        // Write/update the project config so future runs reuse this bool
-        const configData = { slug: resultSlug, name: resultName };
-        if (!isUpdate && data.secret) configData.secret = data.secret;
-        writeProjectConfig(absDir, configData);
-
-        if (isUpdate) {
-          process.stdout.write(liveUrl + '\n');
-          process.stderr.write(chalk.green('✔') + ` Updated v${data.version_number} (${data.file_count} files)\n`);
-          process.stderr.write(`  ${liveUrl}\n`);
-          process.stderr.write(`  slug: ${resultSlug}\n`);
-        } else {
-          process.stdout.write(liveUrl + '\n');
-          process.stderr.write(chalk.green('✔') + ` Shipped "${resultName}" (${files.length} files)\n`);
-          process.stderr.write(`  ${liveUrl}\n`);
-          process.stderr.write(`  slug: ${resultSlug}\n`);
-        }
-
-        // Upload binary/asset files (non-blocking)
-        try {
-          await uploadFiles(resultSlug, absDir, { ig, skip: !opts.upload });
-        } catch {
-          // Upload failures should not block shipit
-        }
       } catch (err) {
-        process.stderr.write(chalk.red('✖') + ` ${err.message}\n`);
-        process.exit(1);
+        throw new CliError(`Network error: ${err.message}`, EXIT.API);
       }
-    });
+
+      let result = null;
+      try {
+        result = await res.json();
+      } catch {
+        // ignore — handled below
+      }
+
+      if (!res.ok) {
+        const msg = (result && result.error) || `API error: ${res.status} ${res.statusText}`.trim();
+        const code = res.status === 404 ? EXIT.NOT_FOUND : res.status === 429 ? EXIT.RATE_LIMITED : EXIT.API;
+        throw new CliError(msg, code);
+      }
+
+      const resultSlug = isUpdate ? slug : result.slug;
+      const resultName = isUpdate ? (projConfig.name || name) : result.name;
+      const liveUrl = `https://${resultSlug}.bool01.com`;
+
+      const configData = { slug: resultSlug, name: resultName };
+      if (!isUpdate && result.secret) configData.secret = result.secret;
+      writeProjectConfig(absDir, configData);
+
+      const summary = {
+        slug: resultSlug,
+        name: resultName,
+        url: liveUrl,
+        version_number: result.version_number,
+        file_count: result.file_count ?? files.length,
+        action: isUpdate ? 'updated' : 'created',
+      };
+      const shaped = printData(summary);
+      if (shaped !== undefined) {
+        if (isUpdate) {
+          success(`Updated v${result.version_number} (${result.file_count} files)`);
+        } else {
+          success(`Shipped "${resultName}" (${files.length} files)`);
+        }
+        info(`Live URL: ${liveUrl}`);
+        info(`slug: ${resultSlug}`);
+      }
+
+      try {
+        await uploadFiles(resultSlug, absDir, { ig, skip: !opts.upload });
+      } catch {
+        // Upload failures should not block shipit
+      }
+    }));
 }
