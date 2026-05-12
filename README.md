@@ -139,6 +139,21 @@ bool pull my-project ./local-copy --version 3
 
 - `--version` — Specific version number (default: latest)
 
+### Git push-to-deploy
+
+Deploy with `git push` instead of `bool deploy`:
+
+```bash
+bool git init                # writes: git remote add bool bool::<slug>
+git push bool main           # deploys the pushed commit
+```
+
+`bool git init` reads the slug from `.bool/config` in the current directory (or pass `--slug <slug>`). After that, any `git push bool <branch>` extracts the pushed commit into a temporary git worktree and runs `bool deploy <slug>` against it — so the deploy reflects exactly what's committed, not whatever is dirty in your working tree.
+
+The commit message becomes `git push <branch> (<sha7>)`. Authentication uses your existing `BOOL_API_KEY` / `~/.config/bool-cli/config.json`.
+
+Under the hood this ships a `git-remote-bool` helper that git invokes when it sees the `bool::<slug>` URL scheme. The helper is installed alongside `bool` by npm, so anything that has `bool` on PATH also has the helper on PATH.
+
 ### Claim
 
 ```bash
@@ -174,6 +189,7 @@ Add `.bool/` to your `.gitignore`.
 bool-cli/
   bin/
     bool.js              # Entry point + global flags
+    git-remote-bool.js   # `git push bool main` helper
   src/
     commands/
       auth.js            # auth login, status, doctor
@@ -182,6 +198,7 @@ bool-cli/
       versions.js        # versions, deploy, pull
       claim.js           # claim anonymous Bool
       skill.js           # install agent skill
+      git.js             # bool git init (configure push-to-deploy remote)
     utils/
       action.js          # action wrapper: typed errors + global flag plumbing
       api.js             # API client → typed CliError on HTTP failure
