@@ -9,7 +9,8 @@
     "url": "https://github.com/codehs/bool-cli.git"
   },
   "bin": {
-    "bool": "./bin/bool.js"
+    "bool": "./bin/bool.js",
+    "git-remote-bool": "./bin/git-remote-bool.js"
   },
   "files": [
     "bin/",

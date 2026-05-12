@@ -8,6 +8,7 @@ import { register as shipit } from '../src/commands/shipit.js';
 import { register as versions } from '../src/commands/versions.js';
 import { register as skill } from '../src/commands/skill.js';
 import { register as claim } from '../src/commands/claim.js';
+import { register as git } from '../src/commands/git.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json');
@@ -36,6 +37,7 @@ shipit(program);
 versions(program);
 skill(program);
 claim(program);
+git(program);
 
 program.parseAsync(process.argv).catch((err) => {
   process.stderr.write(`✖ ${err.message}\n`);
