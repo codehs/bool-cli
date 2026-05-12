@@ -123,8 +123,11 @@ function deployRef(src, slug, dst) {
     const message = `git push ${branch} (${sha.slice(0, 7)})`;
 
     // Child stderr forwards to the user; child stdout is discarded so it
-    // doesn't pollute the helper protocol on our stdout.
-    const deploy = spawnSync('bool', ['deploy', slug, '-m', message], {
+    // doesn't pollute the helper protocol on our stdout. The explicit `.`
+    // prevents `bool deploy`'s slug-or-dir heuristic from reinterpreting the
+    // slug as a directory path if the worktree contains a folder of the
+    // same name.
+    const deploy = spawnSync('bool', ['deploy', slug, '.', '-m', message], {
       cwd: worktree,
       stdio: ['ignore', 'pipe', 'inherit'],
     });
